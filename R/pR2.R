@@ -1,0 +1,147 @@
+### pseudo-R2 ################################################################
+
+## This is taken from pscl package, I don't want to list it as import for
+## this alone. The return object needs tweaking for me anyway
+pR2Work <- function(llh, llhNull, n, object = NULL, objectNull = NULL) {
+  McFadden <- as.numeric(1 - llh / llhNull)
+  G2 <- as.numeric(-2 * (llhNull - llh))
+  r2ML <- as.numeric(1 - exp(-G2 / n))
+  r2ML.max <- as.numeric(1 - exp(llhNull * 2 / n))
+  r2CU <- r2ML / r2ML.max
+  
+  out <- NULL
+  out$llh <- llh
+  out$llhNull <- llhNull
+  
+  out$G2 <- G2
+  out$McFadden <- McFadden
+  out$r2ML <- r2ML
+  out$r2CU <- r2CU
+  
+  if (!is.null(object)) {
+    the_aov <- anova(objectNull, object, test = "Chisq")
+    
+    # glm.nb uses different names for the columns
+    if (grepl("Negative Binomial", get_family(object)$family)) {
+      out$chisq <- the_aov$`LR stat.`[2]
+      out$chisq_df <- the_aov$`Resid. df`[2]
+      out$chisq_p <- the_aov$`Pr(Chi)`[2]
+    } else {
+      out$chisq <- the_aov$Deviance[2]
+      out$chisq_df <- the_aov$Df[2]
+      out$chisq_p <- the_aov$`Pr(>Chi)`[2]
+    }
+  }
+  
+  out
+}
+
+pR2 <- function(object) {
+
+  llh <- getLL(object)
+  
+  if (get_family(object)$family %in% c("quasibinomial","quasipoisson")) {
+    msg_wrap("Note: Pseudo-R2 for quasibinomial/quasipoisson families is
+             calculated by refitting the fitted and null models as
+             binomial/poisson.")
+  }
+  
+  frame <- model.frame(object)
+  
+  .weights <- model.weights(frame)
+  .offset <- model.offset(frame)
+  
+  dv <- names(frame)[1]
+  form <- as.formula(paste(paste0("`", dv, "`", "~ 1")))
+  # Create new environment
+  e <- new.env()
+  # Add everything from the model's data to this environment
+  lapply(names(frame), function(x, env, f) {env[[x]] <- f[[x]]}, env = e,
+         f = frame)
+  # Add the offset to the environment
+  e$`.offset` <- .offset
+  # Add the weights to the environment
+  e$`.weights` <- .weights
+  # Add the environment to the formula
+  environment(form) <- e
+  
+  # Get the model's original call
+  call <- getCall(object)
+  # Replace that call's formula with this new one that includes the modified
+  # environment. Then set the `data` arg of the call to NULL so it looks only
+  # in the new, modified environment
+  call$formula <- form
+  call$data <- NULL
+  # The model frame already contains exactly the estimation sample.
+  call$subset <- NULL
+  call$na.action <- stats::na.fail
+  # Conditionally add the names of the offset and weights args
+  if (!is.null(.offset)) {
+    call$offset <- quote(.offset)
+  } else call$offset <- NULL
+  if (!is.null(.weights)) {
+    call$weights <- quote(.weights)
+  } else call$weights <- NULL
+  call$start <- call$etastart <- call$mustart <- NULL
+  # Can't attach the family object from glm.nb objects because of 
+  # the theta parameter being estimated based on the model spec.
+  if (!grepl("Negative Binomial", get_family(object)$family)) {
+    call$family <- get_family(object)
+  }
+  # Update the model
+  objectNull <- try(eval(call))
+  if ("try-error" %in% class(objectNull)) {
+    out <- as.list(rep(NA, 9))
+    names(out) <- c("llh", "llhNull", "G2", "McFadden", "r2ML", "r2CU", 
+                    "chisq", "chisq_df", "chisq_p")
+    warn_wrap("Something went wrong when calculating the pseudo R-squared. 
+              Returning NA instead.")
+    return(out)
+  }
+  
+  llhNull <- getLL(objectNull)
+  n <- nrow(frame)
+  pR2Work(llh, llhNull, n, object, objectNull)
+  
+}
+
+# Enabling support for quasi families
+#' @importFrom stats poisson binomial family
+getLL <- function(object) {
+  
+  fam <- get_family(object)
+  link <- fam$link
+  fam <- fam$family
+  quasis <- c("quasibinomial","quasipoisson","quasi")
+  if (fam %nin% quasis) {
+    return(logLik(object))
+  }
+  if (fam == "quasi") return(NA_real_)
+
+  # Refit the saved design, not a call that can replay subsets or changed data.
+  frame <- model.frame(object)
+  likelihood_family <- if (fam == "quasipoisson") poisson(link) else binomial(link)
+  refit <- stats::glm.fit(x = stats::model.matrix(object),
+                          y = stats::model.response(frame),
+                          weights = model.weights(frame),
+                          offset = model.offset(frame),
+                          family = likelihood_family, control = object$control,
+                          intercept = attr(terms(object), "intercept") == 1L)
+  class(refit) <- c("glm", "lm")
+  logLik(refit)
+}
+
+### Have to specify data differently than pscl to fix namespace issues
+# pR2 <- function(object) {
+#   llh <- suppressWarnings(logLik(object))
+#   if (class(object)[1] %in% c("svyglm","svrepglm")) {
+#     objectNull <- suppressWarnings(update(object, ~ 1,
+#                                           design = object$survey.design))
+#   } else {
+#   objectNull <- suppressWarnings(update(object, ~ 1,
+#                                         data = model.frame(object)))
+#   }
+#   llhNull <- logLik(objectNull)
+#   n <- dim(object$model)[1]
+#   pR2Work(llh,llhNull,n)
+# }
