@@ -9,7 +9,8 @@ scale_mod <- function(model, ...) {
 
 
 #' @export
-#'
+#' @rdname scale_mod
+#' @usage scale_lm(model, ...)
 
 scale_lm <- scale_mod
 

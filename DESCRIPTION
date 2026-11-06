@@ -17,16 +17,16 @@ LazyData: true
 Imports: cli, generics, broom, broom.mixed, ggplot2 (>= 3.4.0),
         magrittr, pander, pkgconfig, rlang, reformulas (>= 0.4.2),
         sandwich, tibble
-Suggests: boot, huxtable, kableExtra, lme4, lmerTest (>= 3.2-1), MASS,
-        methods, pbkrtest, RColorBrewer, scales, survey, weights,
-        knitr, rmarkdown, testthat, vdiffr
+Suggests: boot, Formula, huxtable, kableExtra, lme4, lmerTest (>=
+        3.2-1), MASS, methods, pbkrtest, RColorBrewer, scales, survey,
+        weights, knitr, rmarkdown, testthat, vdiffr
 Enhances: brms, quantreg, rstanarm
 RoxygenNote: 7.3.2
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)
 Depends: R (>= 3.6.0)
 NeedsCompilation: no
-Packaged: 2026-11-05 06:04:51 UTC; jacoblong
+Packaged: 2026-11-06 04:00:24 UTC; jacoblong
 Author: Jacob A. Long [aut, cre] (ORCID:
     <https://orcid.org/0000-0002-1582-6214>)
 Maintainer: Jacob A. Long <jacob.long@sc.edu>

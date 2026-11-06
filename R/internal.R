@@ -101,20 +101,11 @@ two_sided <- function(x, ...) {
   if (inherits(x, "Formula")) {
     # Extract just the main formula part for wbgee
     x <- formula(x)
-    if (debug) {
-      cat("After Formula conversion:\n")
-      print(x)
-    }
   }
   
   # Basic formula check
   if (inherits(x, "formula")) {
-    result <- length(x) > 2
-    if (debug) {
-      cat("Formula length:", length(x), "\n")
-      cat("Returning:", result, "\n")
-    }
-    return(result)
+    return(length(x) > 2)
   }
   
   # For other cases

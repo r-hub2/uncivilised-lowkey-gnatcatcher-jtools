@@ -2,6 +2,7 @@
 
 * Internal model updates now retain weights and offsets when those arguments
   are omitted; explicit `NULL` still removes them.
+* Formula helpers no longer fail because of a stray debugging flag.
 * Quasi-Poisson and quasi-binomial pseudo-R-squared calculations now refit the
   saved design matrix with the original estimation-sample weights and total
   offset. This prevents silently unweighted likelihoods and dependence on

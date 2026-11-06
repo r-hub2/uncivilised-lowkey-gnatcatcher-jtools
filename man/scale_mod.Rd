@@ -2,11 +2,13 @@
 % Please edit documentation in R/scale_lm.R
 \name{scale_mod}
 \alias{scale_mod}
-\alias{scale_mod.default}
 \alias{scale_lm}
+\alias{scale_mod.default}
 \title{Scale variables in fitted regression models}
 \usage{
 scale_mod(model, ...)
+
+scale_lm(model, ...)
 
 \method{scale_mod}{default}(
   model,
